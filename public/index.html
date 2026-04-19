@@ -3,242 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LOVEMATCH - Kết nối trái tim</title>
+    <title>LoveMatch - Kết nối trái tim</title>
     <style>
-        /* Tông màu LoveMatch: Hồng-Đỏ lãng mạn */
-        :root {
-            --primary-color: #ff4757; /* Màu hồng hồng giống hình ảnh */
-            --bg-color: #fff0f0; /* Nền hồng nhạt giống hình ảnh */
-            --text-color: #333;
-            --stanger-msg-bg: #f1f2f6; /* Màu tin nhắn người lạ (xám nhạt) */
-            --status-bg: #ffebee; /* Màu nền trạng thái */
-            --system-msg-color: #ff7675; /* Màu thông báo hệ thống */
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Font modernize UI */
-        }
-
-        body {
-            background-color: #eee; /* Nền ngoài cho khung điện thoại */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Khung giống điện thoại thực */
-        .app-container {
-            width: 360px;
-            height: 640px;
-            background-color: #fff;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        /* Thanh trên cùng LOVEMATCH */
-        .header {
-            background-color: var(--primary-color);
-            color: #fff;
-            padding: 15px;
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-        }
-
-        /* Phần chứa tin nhắn */
-        .chat-area {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--bg-color);
-            padding: 15px;
-            overflow-y: auto;
-        }
-
-        /* Hộp trạng thái chat */
-        .status-box {
-            background-color: var(--status-bg);
-            color: var(--primary-color);
-            padding: 8px 15px;
-            text-align: center;
-            border-radius: 15px;
-            font-size: 12px;
-            margin-bottom: 10px;
-        }
-
-        /* Thông báo hệ thống */
-        .system-box {
-            color: var(--system-msg-color);
-            padding: 8px 15px;
-            text-align: center;
-            border-radius: 15px;
-            font-size: 11px;
-            margin-bottom: 15px;
-        }
-
-        /* Khu vực tin nhắn */
-        .messages {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Bong bóng tin nhắn */
-        .message {
-            padding: 10px 15px;
-            border-radius: 15px;
-            max-width: 75%;
-            font-size: 14px;
-            line-height: 1.4;
-            position: relative;
-        }
-
-        .message.stranger {
-            align-self: flex-start;
-            background-color: var(--stanger-msg-bg);
-            color: #000;
-            border-bottom-left-radius: 4px;
-        }
-
-        .message.mine {
-            align-self: flex-end;
-            background-color: var(--primary-color);
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-
-        /* --- VÙNG NHẬP LIỆU: ĐÃ CĂN CHỈNH LẠI --- */
-        .input-area {
-            display: flex;
-            align-items: center;
-            background: #fff;
-            padding: 10px 15px;
-            border-top: 1px solid #eee;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.05);
-            /* Sửa vấn đề: Thêm lề dưới để không bị cạnh màn hình che */
-            padding-bottom: env(safe-area-inset-bottom, 10px); 
-        }
-
-        .btn-icon {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--primary-color);
-            flex-shrink: 0;
-            width: 36px;
-            display: flex;
-            justify-content: center;
-            margin-right: 8px; /* Khoảng cách lề */
-        }
-
-        /* Sửa vấn đề: Ô nhập tin nhắn chiếm không gian chính */
-        input {
-            flex-grow: 1; /* Chiếm tối đa không gian còn lại */
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            font-size: 14px;
-            outline: none;
-            margin-right: 10px; /* Thêm khoảng cách cho nút Gửi */
-            width: 0; /* Đảm bảo ô input có thể nén */
-        }
-
-        input:focus {
-            border-color: var(--primary-color);
-        }
-
-        /* Nút Gửi đã được căn chỉnh */
-        .btn-send {
-            background: var(--primary-color);
-            color: #fff;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            /* Sửa vấn đề: Đảm bảo nút Gửi không bị nén, mất chữ */
-            flex-shrink: 0; 
-            white-space: nowrap; /* Không cho chữ Gửi xuống dòng */
-        }
-
-        .btn-send:hover {
-            opacity: 0.9;
-        }
+        :root { --primary: #ff4757; --bg: #fff0f0; }
+        * { box-sizing: border-box; } 
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        
+        #app { background: white; width: 100%; max-width: 400px; height: 100vh; max-height: 750px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        h2 { background: var(--primary); color: white; margin: 0; padding: 15px; text-align: center; font-size: 18px; flex-shrink: 0; }
+        
+        #start-screen { flex: 1; padding: 25px; display: flex; flex-direction: column; gap: 15px; justify-content: center; }
+        #chat-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        #status { font-size: 12px; text-align: center; padding: 8px; background: #ffebee; color: var(--primary); font-weight: bold; flex-shrink: 0; }
+        
+        #chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #fffcfc; }
+        .msg { padding: 10px 14px; border-radius: 18px; max-width: 80%; font-size: 14px; word-wrap: break-word; }
+        .my-msg { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+        .stranger-msg { align-self: flex-start; background: #f1f2f6; color: #2f3542; border-bottom-left-radius: 4px; }
+        
+        #input-area { padding: 10px; display: flex; gap: 6px; border-top: 1px solid #ffecec; align-items: center; background: white; flex-shrink: 0; width: 100%; }
+        #input-area input[type="text"] { flex: 1; min-width: 60px; padding: 10px; border-radius: 15px; border: 1px solid #ffccd2; outline: none; font-size: 14px; }
+        #input-area button { background: var(--primary); color: white; border: none; padding: 10px 12px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 13px; flex-shrink: 0; white-space: nowrap; }
+        
+        .btn-icon { background: none !important; font-size: 22px !important; padding: 0 5px !important; color: var(--primary) !important; }
+        .btn-leave { background: #ff6b6b !important; }
+        .hidden { display: none !important; }
+        img { max-width: 100%; border-radius: 12px; }
+        
+        /* Cải thiện ô nhập tên */
+        #user-name { padding: 12px; border-radius: 12px; border: 2px solid #ffccd2; outline: none; font-size: 16px; text-align: center; transition: 0.3s; }
+        #user-name:focus { border-color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div class="app-container">
-    <div class="header">LOVEMATCH</div>
+<div id="app">
+    <h2>LOVEMATCH</h2>
     
-    <div class="chat-area">
-        <div class="status-box">Đang chat với: Kkk</div>
-        <div class="system-box">Đã kết nối! Bạn có thể gửi ảnh sau 1 phút.</div>
-        
-        <div class="messages">
-            <div class="message stranger">Aa</div>
-            <div class="message mine">muôn gì</div>
-            <div class="message stranger">muốn làm bạn</div>
-            <div class="message mine">oke</div>
-        </div>
+    <div id="start-screen">
+        <div style="text-align: center; font-size: 50px;">💖</div>
+        <input type="text" id="user-name" placeholder="Nhập biệt danh của bạn vào đây...">
+        <select id="user-gender"><option value="Nam">Tôi là Nam</option><option value="Nữ">Tôi là Nữ</option></select>
+        <select id="find-gender"><option value="Nữ">Tìm Nữ</option><option value="Nam">Tìm Nam</option><option value="Both">Tìm Cả hai</option></select>
+        <button onclick="startMatch()" style="padding: 12px; font-size: 16px; border-radius: 12px;">BẮT ĐẦU HẸN HÒ</button>
     </div>
 
-    <div class="input-area">
-        <button class="btn-icon heart">❤️</button>
-        <button class="btn-icon attachment">📎</button>
-        <input type="text" placeholder="Nhập tin...">
-        <button class="btn-send">GỬI</button>
+    <div id="chat-screen" class="hidden">
+        <div id="status">Đang tìm một nửa phù hợp...</div>
+        <div id="chat-box"></div>
+        <div id="typing-notify" style="height:15px; font-size:11px; color:#a4b0be; margin-left:15px;"></div>
+        <div id="input-area">
+            <button class="btn-icon" onclick="sendHeart()">❤️</button>
+            <input type="file" id="file-input" class="hidden" accept="image/*" onchange="uploadImage(this)">
+            <button class="btn-icon" onclick="document.getElementById('file-input').click()">📎</button>
+            <input type="text" id="msg-input" placeholder="Nhập tin nhắn..." oninput="handleTyping()" onkeypress="if(event.key==='Enter')sendMessage()">
+            <button onclick="sendMessage()">GỬI</button>
+            <button class="btn-leave" onclick="leaveRoom()">RỜI</button>
+        </div>
     </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
-    // Mã JavaScript để giả lập gửi tin nhắn (dựa trên cấu trúc tin nhắn của bạn)
-    const chatBoxMessages = document.querySelector('.chat-area .messages');
-    const inputField = document.querySelector('.input-area input');
-    const sendBtn = document.querySelector('.input-area .btn-send');
+    const socket = io();
+    let currentRoom = '', matchStartTime = 0;
+    const PHOTO_WAIT = 60000;
 
-    function addMessage(content, isMine) {
-        const div = document.createElement('div');
-        div.className = `message ${isMine ? 'mine' : 'stranger'}`;
-        div.innerText = content;
-        chatBoxMessages.appendChild(div);
-        // Tự động cuộn xuống cuối
-        document.querySelector('.chat-area').scrollTop = document.querySelector('.chat-area').scrollHeight;
+    function startMatch() {
+        // KIỂM TRA BẮT BUỘC NHẬP TÊN
+        const userNameInput = document.getElementById('user-name').value.trim();
+        
+        if (userNameInput === "") {
+            alert("Bạn ơi, hãy nhập biệt danh trước khi tìm người ấy nhé!");
+            document.getElementById('user-name').focus(); // Tự động trỏ chuột vào ô nhập tên
+            return; // Dừng lại, không cho kết nối
+        }
+
+        const data = { 
+            name: userNameInput, 
+            gender: document.getElementById('user-gender').value, 
+            findGender: document.getElementById('find-gender').value 
+        };
+        
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('chat-screen').classList.remove('hidden');
+        socket.emit('start-match', data);
     }
+
+    socket.on('matched', (data) => {
+        currentRoom = data.roomName;
+        matchStartTime = Date.now();
+        document.getElementById('status').innerText = "Đang chat với: " + data.partnerName;
+        addSystemMessage("Đã kết nối thành công! Bạn có thể gửi ảnh sau 1 phút.");
+    });
+
+    socket.on('force-leave', () => { 
+        alert("Cuộc trò chuyện đã kết thúc vì có người rời đi."); 
+        location.reload(); 
+    });
 
     function sendMessage() {
-        if (inputField.value.trim()) {
-            addMessage(inputField.value, true);
-            inputField.value = '';
-            // Giả lập trả lời sau 1 giây
-            setTimeout(() => {
-                addMessage("Giả lập trả lời từ người lạ", false);
-            }, 1000);
+        const input = document.getElementById('msg-input');
+        if (input.value.trim() && currentRoom) {
+            socket.emit('send-message', { room: currentRoom, msg: input.value, isImage: false });
+            addMessage(input.value, true, false);
+            input.value = '';
         }
     }
 
-    sendBtn.addEventListener('click', sendMessage);
-    inputField.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            sendMessage();
+    function uploadImage(input) {
+        const timePassed = Date.now() - matchStartTime;
+        if (timePassed < PHOTO_WAIT) {
+            alert(`Vui lòng trò chuyện thêm ${Math.ceil((PHOTO_WAIT - timePassed)/1000)}s nữa để gửi ảnh bạn nhé.`);
+            input.value = ""; return;
         }
-    });
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            socket.emit('send-message', { room: currentRoom, msg: e.target.result, isImage: true });
+            addMessage(e.target.result, true, true);
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    socket.on('receive-message', (data) => addMessage(data.msg, false, data.isImage));
+    
+    function addMessage(content, isMine, isImage) {
+        const div = document.createElement('div');
+        div.className = `msg ${isMine ? 'my-msg' : 'stranger-msg'}`;
+        if (isImage) { 
+            const img = document.createElement('img'); 
+            img.src = content; 
+            div.appendChild(img); 
+        } else { 
+            div.innerText = content; 
+        }
+        document.getElementById('chat-box').appendChild(div);
+        document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+    }
+
+    function handleTyping() {
+        socket.emit('typing', { room: currentRoom, isTyping: true });
+        setTimeout(() => socket.emit('typing', { room: currentRoom, isTyping: false }), 2000);
+    }
+    
+    socket.on('display-typing', (is) => document.getElementById('typing-notify').innerText = is ? "Người ấy đang gõ..." : "");
+    function sendHeart() { if(currentRoom) { socket.emit('send-heart', { room: currentRoom }); addMessage("❤️", true, false); } }
+    socket.on('receive-heart', () => addMessage("❤️", false, false));
+    
+    // HÀM XỬ LÝ NÚT RỜI
+    function leaveRoom() { 
+        if(confirm("Bạn có chắc chắn muốn kết thúc cuộc trò chuyện này không?")) {
+            socket.emit('leave-room'); 
+        }
+    }
+    
+    function addSystemMessage(text) {
+        const div = document.createElement('div'); 
+        div.style = "text-align:center;font-size:11px;color:#ff7675;margin:5px 0;";
+        div.innerText = text; 
+        document.getElementById('chat-box').appendChild(div);
+    }
 </script>
 </body>
 </html>

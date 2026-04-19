@@ -10,17 +10,29 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         
         #app { background: white; width: 100%; max-width: 400px; height: 100vh; max-height: 750px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        h2 { background: var(--primary); color: white; margin: 0; padding: 15px; text-align: center; font-size: 18px; flex-shrink: 0; }
+        
+        /* Cập nhật thanh Header để chứa số người online */
+        h2 { background: var(--primary); color: white; margin: 0; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; flex-shrink: 0; }
+        .online-badge { background: white; color: var(--primary); font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: bold; }
         
         #start-screen { flex: 1; padding: 25px; display: flex; flex-direction: column; gap: 15px; justify-content: center; }
         #chat-screen { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #status { font-size: 12px; text-align: center; padding: 8px; background: #ffebee; color: var(--primary); font-weight: bold; flex-shrink: 0; }
         
+        /* css vòng quay (spinner) */
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ffccd2; border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 5px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #status { font-size: 12px; text-align: center; padding: 8px; background: #ffebee; color: var(--primary); font-weight: bold; flex-shrink: 0; }
         #chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #fffcfc; }
-        .msg { padding: 10px 14px; border-radius: 18px; max-width: 80%; font-size: 14px; word-wrap: break-word; }
+        
+        /* CSS cho tin nhắn và trạng thái Đã gửi/Đã đọc */
+        .msg { padding: 10px 14px; border-radius: 18px; max-width: 80%; font-size: 14px; word-wrap: break-word; position: relative; }
         .my-msg { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
         .stranger-msg { align-self: flex-start; background: #f1f2f6; color: #2f3542; border-bottom-left-radius: 4px; }
         
+        .receipt { display: block; font-size: 10px; color: #ffccd2; text-align: right; margin-top: 5px; font-style: italic; }
+        .receipt.read { color: #fff; font-weight: bold; } /* Chuyển màu trắng đậm khi Đã đọc */
+
         #input-area { padding: 10px; display: flex; gap: 6px; border-top: 1px solid #ffecec; align-items: center; background: white; flex-shrink: 0; width: 100%; }
         #input-area input[type="text"] { flex: 1; min-width: 60px; padding: 10px; border-radius: 15px; border: 1px solid #ffccd2; outline: none; font-size: 14px; }
         #input-area button { background: var(--primary); color: white; border: none; padding: 10px 12px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 13px; flex-shrink: 0; white-space: nowrap; }
@@ -29,8 +41,6 @@
         .btn-leave { background: #ff6b6b !important; }
         .hidden { display: none !important; }
         img { max-width: 100%; border-radius: 12px; }
-        
-        /* Cải thiện ô nhập tên */
         #user-name { padding: 12px; border-radius: 12px; border: 2px solid #ffccd2; outline: none; font-size: 16px; text-align: center; transition: 0.3s; }
         #user-name:focus { border-color: var(--primary); }
     </style>
@@ -38,18 +48,21 @@
 <body>
 
 <div id="app">
-    <h2>LOVEMATCH</h2>
+    <h2>
+        LOVEMATCH
+        <span class="online-badge" id="online-count">1 người online</span>
+    </h2>
     
     <div id="start-screen">
         <div style="text-align: center; font-size: 50px;">💖</div>
-        <input type="text" id="user-name" placeholder="Nhập biệt danh của bạn vào đây...">
+        <input type="text" id="user-name" placeholder="Nhập biệt danh của bạn...">
         <select id="user-gender"><option value="Nam">Tôi là Nam</option><option value="Nữ">Tôi là Nữ</option></select>
         <select id="find-gender"><option value="Nữ">Tìm Nữ</option><option value="Nam">Tìm Nam</option><option value="Both">Tìm Cả hai</option></select>
         <button onclick="startMatch()" style="padding: 12px; font-size: 16px; border-radius: 12px;">BẮT ĐẦU HẸN HÒ</button>
     </div>
 
     <div id="chat-screen" class="hidden">
-        <div id="status">Đang tìm một nửa phù hợp...</div>
+        <div id="status"></div>
         <div id="chat-box"></div>
         <div id="typing-notify" style="height:15px; font-size:11px; color:#a4b0be; margin-left:15px;"></div>
         <div id="input-area">
@@ -69,44 +82,44 @@
     let currentRoom = '', matchStartTime = 0;
     const PHOTO_WAIT = 60000;
 
+    // NHẬN SỐ NGƯỜI ONLINE
+    socket.on('update-online', (count) => {
+        document.getElementById('online-count').innerText = count + " online";
+    });
+
     function startMatch() {
-        // KIỂM TRA BẮT BUỘC NHẬP TÊN
         const userNameInput = document.getElementById('user-name').value.trim();
-        
         if (userNameInput === "") {
-            alert("Bạn ơi, hãy nhập biệt danh trước khi tìm người ấy nhé!");
-            document.getElementById('user-name').focus(); // Tự động trỏ chuột vào ô nhập tên
-            return; // Dừng lại, không cho kết nối
+            alert("Bạn ơi, hãy nhập biệt danh trước nhé!");
+            document.getElementById('user-name').focus(); 
+            return; 
         }
 
-        const data = { 
-            name: userNameInput, 
-            gender: document.getElementById('user-gender').value, 
-            findGender: document.getElementById('find-gender').value 
-        };
-        
+        const data = { name: userNameInput, gender: document.getElementById('user-gender').value, findGender: document.getElementById('find-gender').value };
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('chat-screen').classList.remove('hidden');
+        
+        // Hiện trạng thái kèm vòng quay Spinner
+        document.getElementById('status').innerHTML = '<span class="spinner"></span> Đang tìm một nửa phù hợp...';
         socket.emit('start-match', data);
     }
 
     socket.on('matched', (data) => {
         currentRoom = data.roomName;
         matchStartTime = Date.now();
+        // Xóa vòng quay đi khi đã match
         document.getElementById('status').innerText = "Đang chat với: " + data.partnerName;
-        addSystemMessage("Đã kết nối thành công! Bạn có thể gửi ảnh sau 1 phút.");
+        addSystemMessage("Đã kết nối thành công!");
     });
 
-    socket.on('force-leave', () => { 
-        alert("Cuộc trò chuyện đã kết thúc vì có người rời đi."); 
-        location.reload(); 
-    });
+    socket.on('force-leave', () => { alert("Cuộc trò chuyện đã kết thúc vì có người rời đi."); location.reload(); });
 
     function sendMessage() {
         const input = document.getElementById('msg-input');
         if (input.value.trim() && currentRoom) {
-            socket.emit('send-message', { room: currentRoom, msg: input.value, isImage: false });
-            addMessage(input.value, true, false);
+            const msgId = Date.now().toString(); // Tạo ID cho tin nhắn (dùng thời gian hiện tại)
+            socket.emit('send-message', { room: currentRoom, msg: input.value, isImage: false, msgId: msgId });
+            addMessage(input.value, true, false, msgId); // Gửi thêm ID vào hàm tạo tin nhắn
             input.value = '';
         }
     }
@@ -119,27 +132,55 @@
         }
         const reader = new FileReader();
         reader.onload = (e) => {
-            socket.emit('send-message', { room: currentRoom, msg: e.target.result, isImage: true });
-            addMessage(e.target.result, true, true);
+            const msgId = Date.now().toString();
+            socket.emit('send-message', { room: currentRoom, msg: e.target.result, isImage: true, msgId: msgId });
+            addMessage(e.target.result, true, true, msgId);
         };
         reader.readAsDataURL(input.files[0]);
     }
 
-    socket.on('receive-message', (data) => addMessage(data.msg, false, data.isImage));
+    // NHẬN TIN NHẮN TỪ NGƯỜI KIA
+    socket.on('receive-message', (data) => {
+        addMessage(data.msg, false, data.isImage, data.msgId);
+    });
     
-    function addMessage(content, isMine, isImage) {
+    function addMessage(content, isMine, isImage, msgId) {
         const div = document.createElement('div');
         div.className = `msg ${isMine ? 'my-msg' : 'stranger-msg'}`;
+        
+        // Thêm nội dung hoặc ảnh
         if (isImage) { 
-            const img = document.createElement('img'); 
-            img.src = content; 
-            div.appendChild(img); 
+            const img = document.createElement('img'); img.src = content; div.appendChild(img); 
         } else { 
             div.innerText = content; 
         }
+
+        // TẠO TRẠNG THÁI "ĐÃ GỬI / ĐÃ ĐỌC"
+        if (isMine && msgId) {
+            const receipt = document.createElement('div');
+            receipt.className = 'receipt';
+            receipt.id = `receipt-${msgId}`;
+            receipt.innerText = '✓ Đã gửi';
+            div.appendChild(receipt);
+        }
+
         document.getElementById('chat-box').appendChild(div);
         document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+
+        // NẾU NHẬN ĐƯỢC TIN NHẮN TỪ NGƯỜI KIA -> Báo cho server biết là "Mình đã đọc"
+        if (!isMine && msgId) {
+            socket.emit('mark-read', { room: currentRoom, msgId: msgId });
+        }
     }
+
+    // LẮNG NGHE SERVER BÁO "NGƯỜI KIA ĐÃ ĐỌC"
+    socket.on('message-read', (msgId) => {
+        const receipt = document.getElementById(`receipt-${msgId}`);
+        if (receipt) {
+            receipt.innerText = '✓✓ Đã đọc';
+            receipt.classList.add('read');
+        }
+    });
 
     function handleTyping() {
         socket.emit('typing', { room: currentRoom, isTyping: true });
@@ -147,21 +188,12 @@
     }
     
     socket.on('display-typing', (is) => document.getElementById('typing-notify').innerText = is ? "Người ấy đang gõ..." : "");
-    function sendHeart() { if(currentRoom) { socket.emit('send-heart', { room: currentRoom }); addMessage("❤️", true, false); } }
-    socket.on('receive-heart', () => addMessage("❤️", false, false));
+    function sendHeart() { if(currentRoom) { socket.emit('send-heart', { room: currentRoom }); addMessage("❤️", true, false, null); } }
+    socket.on('receive-heart', () => addMessage("❤️", false, false, null));
     
-    // HÀM XỬ LÝ NÚT RỜI
-    function leaveRoom() { 
-        if(confirm("Bạn có chắc chắn muốn kết thúc cuộc trò chuyện này không?")) {
-            socket.emit('leave-room'); 
-        }
-    }
-    
+    function leaveRoom() { if(confirm("Bạn có chắc chắn muốn kết thúc?")) { socket.emit('leave-room'); } }
     function addSystemMessage(text) {
-        const div = document.createElement('div'); 
-        div.style = "text-align:center;font-size:11px;color:#ff7675;margin:5px 0;";
-        div.innerText = text; 
-        document.getElementById('chat-box').appendChild(div);
+        const div = document.createElement('div'); div.style = "text-align:center;font-size:11px;color:#ff7675;margin:5px 0;"; div.innerText = text; document.getElementById('chat-box').appendChild(div);
     }
 </script>
 </body>

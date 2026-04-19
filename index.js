@@ -5,21 +5,24 @@ const io = require('socket.io')(http);
 const { createClient } = require('@supabase/supabase-js');
 
 // --- CẤU HÌNH SUPABASE ---
-const SUPABASE_URL = 'https://viqncwqlrwkdxfeglwcy.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpcW5jd3FscndrZHhmZWdsd2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTk4ODksImV4cCI6MjA5MjA5NTg4OX0.qy9bW-BLuePq7Y0HFQTgKTSgzaLP1HvHdOpfUrjI87k';
+const SUPABASE_URL = 'https://viqncwqlrwkdxfeglwcy.supabase.co'; // Điền lại nhé
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpcW5jd3FscndrZHhmZWdsd2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTk4ODksImV4cCI6MjA5MjA5NTg4OX0.qy9bW-BLuePq7Y0HFQTgKTSgzaLP1HvHdOpfUrjI87k'; // Điền lại nhé
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use(express.static('public'));
 
 let waitingList = [];
+let totalOnline = 0; // Biến đếm tổng số người đang online
 
 io.on('connection', (socket) => {
-    console.log('User kết nối:', socket.id);
+    // 1. KHI CÓ NGƯỜI VÀO: Tăng số lượng và báo cho mọi người
+    totalOnline++;
+    io.emit('update-online', totalOnline);
+    console.log('User kết nối. Tổng số:', totalOnline);
 
     socket.on('start-match', (userData) => {
         socket.userData = userData;
         
-        // Tìm người phù hợp giới tính
         const partnerIndex = waitingList.findIndex(user => 
             (userData.findGender === 'Both' || user.userData.gender === userData.findGender) &&
             (user.userData.findGender === 'Both' || userData.gender === user.userData.findGender)
@@ -34,7 +37,6 @@ io.on('connection', (socket) => {
             socket.currentRoom = roomName;
             partner.currentRoom = roomName;
 
-            // Gửi tên đối phương chính xác cho từng người
             socket.emit('matched', { partnerName: partner.userData.name, roomName: roomName });
             partner.emit('matched', { partnerName: socket.userData.name, roomName: roomName });
         } else {
@@ -45,7 +47,13 @@ io.on('connection', (socket) => {
 
     socket.on('send-message', async (data) => {
         if (!data.room) return;
-        socket.to(data.room).emit('receive-message', { msg: data.msg, isImage: data.isImage || false });
+        
+        // Gửi tin nhắn và kèm theo ID để check "Đã đọc"
+        socket.to(data.room).emit('receive-message', { 
+            msgId: data.msgId, // Gửi ID tin nhắn đi
+            msg: data.msg, 
+            isImage: data.isImage || false 
+        });
 
         // Lưu vào Supabase
         await supabase.from('messages').insert([{ 
@@ -53,6 +61,11 @@ io.on('connection', (socket) => {
             sender: socket.userData.name, 
             content: data.isImage ? "[Hình ảnh]" : data.msg 
         }]);
+    });
+
+    // 3. XỬ LÝ TRẠNG THÁI "ĐÃ ĐỌC"
+    socket.on('mark-read', (data) => {
+        socket.to(data.room).emit('message-read', data.msgId);
     });
 
     socket.on('typing', (data) => {
@@ -63,7 +76,6 @@ io.on('connection', (socket) => {
         socket.to(data.room).emit('receive-heart');
     });
 
-    // KHI MỘT NGƯỜI THOÁT, CẢ HAI CÙNG THOÁT
     socket.on('leave-room', () => {
         if (socket.currentRoom) {
             io.to(socket.currentRoom).emit('force-leave');
@@ -72,7 +84,10 @@ io.on('connection', (socket) => {
         }
     });
 
+    // KHI CÓ NGƯỜI THOÁT: Giảm số lượng và báo lại
     socket.on('disconnect', () => {
+        totalOnline--;
+        io.emit('update-online', totalOnline);
         waitingList = waitingList.filter(s => s.id !== socket.id);
     });
 });

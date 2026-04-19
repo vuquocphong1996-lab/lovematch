@@ -6,7 +6,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 // --- CẤU HÌNH SUPABASE ---
 const SUPABASE_URL = 'https://viqncwqlrwkdxfeglwcy.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_iUvjQWKIUkJaD4PqH_WQbA_ygDkUp_5';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpcW5jd3FscndrZHhmZWdsd2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTk4ODksImV4cCI6MjA5MjA5NTg4OX0.qy9bW-BLuePq7Y0HFQTgKTSgzaLP1HvHdOpfUrjI87k';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 app.use(express.static('public'));
@@ -14,12 +14,12 @@ app.use(express.static('public'));
 let waitingList = [];
 
 io.on('connection', (socket) => {
-    console.log('Người dùng mới đã vào LoveMatch:', socket.id);
+    console.log('User kết nối:', socket.id);
 
     socket.on('start-match', (userData) => {
         socket.userData = userData;
         
-        // Lọc người dùng theo giới tính và yêu cầu
+        // Tìm người phù hợp giới tính
         const partnerIndex = waitingList.findIndex(user => 
             (userData.findGender === 'Both' || user.userData.gender === userData.findGender) &&
             (user.userData.findGender === 'Both' || userData.gender === user.userData.findGender)
@@ -34,25 +34,20 @@ io.on('connection', (socket) => {
             socket.currentRoom = roomName;
             partner.currentRoom = roomName;
 
-            io.to(roomName).emit('matched', {
-                partnerName: partner.userData.name,
-                roomName: roomName
-            });
+            // Gửi tên đối phương chính xác cho từng người
+            socket.emit('matched', { partnerName: partner.userData.name, roomName: roomName });
+            partner.emit('matched', { partnerName: socket.userData.name, roomName: roomName });
         } else {
             waitingList.push(socket);
-            socket.emit('waiting', 'Đang tìm kiếm một nửa phù hợp...');
+            socket.emit('waiting', 'Đang tìm một nửa phù hợp...');
         }
     });
 
     socket.on('send-message', async (data) => {
         if (!data.room) return;
-        
-        socket.to(data.room).emit('receive-message', {
-            msg: data.msg,
-            isImage: data.isImage || false
-        });
+        socket.to(data.room).emit('receive-message', { msg: data.msg, isImage: data.isImage || false });
 
-        // Lưu lịch sử tin nhắn vào Supabase
+        // Lưu vào Supabase
         await supabase.from('messages').insert([{ 
             room: data.room, 
             sender: socket.userData.name, 
@@ -68,9 +63,10 @@ io.on('connection', (socket) => {
         socket.to(data.room).emit('receive-heart');
     });
 
+    // KHI MỘT NGƯỜI THOÁT, CẢ HAI CÙNG THOÁT
     socket.on('leave-room', () => {
         if (socket.currentRoom) {
-            socket.to(socket.currentRoom).emit('partner-left');
+            io.to(socket.currentRoom).emit('force-leave');
             socket.leave(socket.currentRoom);
             socket.currentRoom = null;
         }
@@ -81,7 +77,6 @@ io.on('connection', (socket) => {
     });
 });
 
-// Cấu hình cổng PORT để chạy được trên Render/Heroku
 const PORT = process.env.PORT || 3000;
 http.listen(PORT, () => {
     console.log('LoveMatch đang chạy tại cổng: ' + PORT);
